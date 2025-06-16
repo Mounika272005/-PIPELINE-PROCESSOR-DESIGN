@@ -57,6 +57,8 @@ The 4-stage pipelined processor project demonstrates how simple instructions can
 
 #OUTPUT:
 
+![Image](https://github.com/user-attachments/assets/55d5d890-995b-4d56-b899-e10420539a2a)
+
 
 
 
