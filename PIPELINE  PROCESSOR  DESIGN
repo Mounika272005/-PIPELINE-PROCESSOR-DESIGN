@@ -1,0 +1,129 @@
+Registers.v:
+module registers(
+    input clk, we,
+    input [2:0] ra1, ra2, wa,
+    input [7:0] wd,
+    output [7:0] rd1, rd2
+);
+    reg [7:0] regfile[7:0];
+
+    assign rd1 = regfile[ra1];
+    assign rd2 = regfile[ra2];
+
+    always @(posedge clk) begin
+        if (we) regfile[wa] <= wd;
+    end
+endmodule
+
+
+Alu.v:
+
+module alu(input [7:0] a, b, input [1:0] alu_op, output reg [7:0] result);
+    always @(*) begin
+        case (alu_op)
+            2'b00: result = a + b;  // ADD
+            2'b01: result = a - b;  // SUB
+            default: result = 8'h00;
+        endcase
+    end
+endmodule
+
+Verilog code:
+
+// pipelined.v - 4-stage pipelined processor example with ADD, SUB, and LOAD
+
+module pipelined processor(input clk);
+    // Instruction format (8-bit):
+    // [7:6] Opcode | [5:3] Rd | [2:0] Rs (for ADD/SUB), or offset (for LOAD)
+
+    reg [7:0] instr_mem [0:15];
+    reg [7:0] data_mem  [0:15];
+    reg [7:0] regfile   [0:7];
+
+    // Pipeline Registers
+    reg [7:0] IF_ID;
+    reg [7:0] ID_EX_instr;
+    reg [7:0] ID_EX_rd_data, ID_EX_rs_data;
+    reg [7:0] EX_MEM_result;
+    reg [2:0] EX_MEM_rd;
+    reg       EX_MEM_mem_read, EX_MEM_reg_write;
+
+    // Stage: Instruction Fetch (IF)
+    reg [3:0] PC = 0;
+
+    always @(posedge clk) begin
+        IF_ID <= instr_mem[PC];
+        PC <= PC + 1;
+    end
+
+    // Stage: Instruction Decode (ID)
+    wire [1:0] opcode = IF_ID[7:6];
+    wire [2:0] rd = IF_ID[5:3];
+    wire [2:0] rs = IF_ID[2:0];
+
+    always @(posedge clk) begin
+        ID_EX_instr <= IF_ID;
+        ID_EX_rd_data <= regfile[rd];
+        ID_EX_rs_data <= regfile[rs];
+    end
+
+    // Stage: Execute (EX)
+    wire [7:0] alu_result;
+    reg [7:0] ex_result;
+
+    always @(*) begin
+        case (ID_EX_instr[7:6])
+            2'b00: ex_result = ID_EX_rd_data + ID_EX_rs_data; // ADD
+            2'b01: ex_result = ID_EX_rd_data - ID_EX_rs_data; // SUB
+            2'b10: ex_result = data_mem[ID_EX_rs_data];       // LOAD: use rs as address
+            default: ex_result = 8'h00;
+        endcase
+    end
+
+    always @(posedge clk) begin
+        EX_MEM_result <= ex_result;
+        EX_MEM_rd <= ID_EX_instr[5:3];
+        EX_MEM_reg_write <= (ID_EX_instr[7:6] != 2'b11);
+        EX_MEM_mem_read <= (ID_EX_instr[7:6] == 2'b10); // LOAD
+    end
+
+    // Stage: Memory / Write Back (MEM/WB)
+    always @(posedge clk) begin
+        if (EX_MEM_reg_write)
+            regfile[EX_MEM_rd] <= EX_MEM_result;
+    end
+
+    // Initialize instruction memory and data
+    initial begin
+        // Opcodes: 00 = ADD, 01 = SUB, 10 = LOAD
+        // Format: [7:6] Opcode | [5:3] Rd | [2:0] Rs/offset
+        instr_mem[0] = 8'b000_001_010; // ADD R1 = R1 + R2
+        instr_mem[1] = 8'b010_011_100; // LOAD R3 = MEM[R4]
+        instr_mem[2] = 8'b001_001_011; // SUB R1 = R1 - R3
+
+        // Register values
+        regfile[1] = 8'd10;
+        regfile[2] = 8'd5;
+        regfile[4] = 8'd3; // address for LOAD
+        data_mem[3] = 8'd20; // memory location 3
+    end
+endmodule
+
+Testbench:
+
+`timescale 1ns/1ps
+module pipeline_tb;
+    reg clk = 0;
+    always #5 clk = ~clk;
+
+    // Instantiate your top module here
+
+    initial begin
+        $dumpfile("pipeline.vcd");
+        $dumpvars(0, pipeline_tb);
+
+        // Wait and observe pipeline operation
+        #200 $finish;
+    end
+endmodule
+
