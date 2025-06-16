@@ -55,4 +55,8 @@ Conclusion:
 
 The 4-stage pipelined processor project demonstrates how simple instructions can be executed efficiently through instruction pipelining. It provides valuable insights into instruction flow, timing, and data dependency management. Using Verilog HDL for simulation, along with visualization in GTKWave, helped verify functional correctness and timing coordination between pipeline stages. This project not only deepens understanding of digital logic and processor design but also serves as a stepping stone for more advanced CPU and system-on-chip (SoC) design projects.
 
+#OUTPUT:
+
+
+
 
